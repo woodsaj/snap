@@ -524,3 +524,7 @@ func parseNamespace(ns string) []string {
 	}
 	return strings.Split(ns, "/")
 }
+
+func (s *Server) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+	s.n.ServeHTTP(rw, r)
+}

@@ -43,6 +43,7 @@ import (
 	"github.com/intelsdi-x/snap/control"
 	"github.com/intelsdi-x/snap/core/serror"
 	"github.com/intelsdi-x/snap/mgmt/rest"
+	"github.com/intelsdi-x/snap/mgmt/rest/ws_client"
 	"github.com/intelsdi-x/snap/mgmt/tribe"
 	"github.com/intelsdi-x/snap/mgmt/tribe/agreement"
 	"github.com/intelsdi-x/snap/pkg/cfgfile"
@@ -358,6 +359,7 @@ func action(ctx *cli.Context) error {
 		}
 		go monitorErrors(r.Err())
 		coreModules = append(coreModules, r)
+		ws_client.New("ws://localhost:7000/ws", r)
 		log.Info("REST API is enabled")
 	} else {
 		log.Info("REST API is disabled")

@@ -101,6 +101,12 @@ func Username(u string) metaOp {
 	}
 }
 
+func HttpClient(http *http.Client) metaOp {
+	return func(c *Client) {
+		c.http = http
+	}
+}
+
 // New returns a pointer to a snap api client
 // if ver is an empty string, v1 is used by default
 func New(url, ver string, insecure bool, opts ...metaOp) (*Client, error) {
