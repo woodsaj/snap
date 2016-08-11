@@ -22,6 +22,7 @@ type fakeWriter struct {
 
 func (w *fakeWriter) Write(b []byte) (int, error) {
 	log.Printf("writeHeader: %d", w.status)
+	log.Printf("writeHeader: %v", w.header)
 	w.Body.WriteString("HTTP/1.1 200 OK\n")
 	w.Body.WriteString(fmt.Sprintf("Content-Length: %d\n", len(b)))
 	w.Body.WriteString("\n")
@@ -36,30 +37,37 @@ func (w *fakeWriter) Header() http.Header {
 	return w.header
 }
 
-type WsClient struct {
-	Server *rest.Server
-	ws     *websocket.Conn
-}
-
-func New(remoteAddr string, server *rest.Server) {
-	origin := "http://localhost/"
-	ws, err := websocket.Dial(remoteAddr, "", origin)
-	if err != nil {
-		log.Fatal(err)
+func New(remoteAddr string, server *rest.Server) *SnapClientOverWebsocket {
+	return &SnapClientOverWebsocket{
+		Server:     server,
+		remoteAddr: remoteAddr,
 	}
-	scow := &SnapClientOverWebsocket{Server: server}
-	rpc.Register(scow)
-	log.Println("starting jsonrcp server")
-	go jsonrpc.ServeConn(ws)
-	log.Println("jsonrpc server started.")
 }
 
 type SnapClientOverWebsocket struct {
-	Server *rest.Server
+	remoteAddr string
+	Server     *rest.Server
+	Socket     *websocket.Conn
 }
 
 type WsClientPayload struct {
 	Data []byte
+}
+
+func (s *SnapClientOverWebsocket) Start() error {
+	log.Printf("connecting to ws_server at %s", s.remoteAddr)
+	ws, err := websocket.Dial(s.remoteAddr, "", "http://localhost/")
+	if err != nil {
+		return err
+	}
+	s.Socket = ws
+	rpc.Register(s)
+	go func() {
+		log.Println("starting jsonrpc server")
+		jsonrpc.ServeConn(ws)
+		log.Println("jsonrpc server started.")
+	}()
+	return nil
 }
 
 func (s *SnapClientOverWebsocket) Handle(r WsClientPayload, resp *WsClientPayload) error {
@@ -75,7 +83,14 @@ func (s *SnapClientOverWebsocket) Handle(r WsClientPayload, resp *WsClientPayloa
 }
 
 func (s *SnapClientOverWebsocket) Heartbeat(t time.Time, r *time.Time) error {
-	log.Printf("recieved heartbeat.  Delay %s", time.Since(t))
 	*r = time.Now()
 	return nil
+}
+
+func (s *SnapClientOverWebsocket) Stop() {
+	s.Socket.Close()
+}
+
+func (s *SnapClientOverWebsocket) Name() string {
+	return "WsClient"
 }

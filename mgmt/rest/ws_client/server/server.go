@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"golang.org/x/net/websocket"
 	"log"
 	"net/http"
@@ -10,9 +11,13 @@ import (
 	"net/rpc/jsonrpc"
 	"time"
 
+	"github.com/codeskyblue/go-uuid"
 	"github.com/intelsdi-x/snap/mgmt/rest/client"
+	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 	"github.com/intelsdi-x/snap/mgmt/rest/ws_client"
 )
+
+var sessions map[string]*Session
 
 type wsRoundTripper struct {
 	c *rpc.Client
@@ -32,13 +37,28 @@ func (r *wsRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 func main() {
-
-	http.Handle("/ws", websocket.Handler(serve))
+	sessions = make(map[string]*Session)
+	http.Handle("/ws", websocket.Handler(serveWs))
+	http.HandleFunc("/catalog", servePlugins)
 	http.ListenAndServe("localhost:7000", nil)
 
 }
 
-func serve(ws *websocket.Conn) {
+func servePlugins(w http.ResponseWriter, r *http.Request) {
+	catalog := make([]*rbody.Metric, 0)
+	for id, sess := range sessions {
+		log.Printf("getting plugins from socket with sessionId: %s", id)
+		resp := sess.snapClient.GetMetricCatalog()
+		catalog = append(catalog, resp.Catalog...)
+	}
+	body, err := json.Marshal(catalog)
+	if err != nil {
+		panic(err)
+	}
+	w.Write(body)
+}
+
+func serveWs(ws *websocket.Conn) {
 	log.Printf("Handler starting")
 	c := jsonrpc.NewClient(ws)
 	hc := &http.Client{
@@ -48,6 +68,26 @@ func serve(ws *websocket.Conn) {
 	if err != nil {
 		panic(err)
 	}
+	session := &Session{
+		Id:         uuid.NewUUID().String(),
+		socket:     ws,
+		snapClient: snapClient,
+		jsonrpcCli: c,
+	}
+	sessions[session.Id] = session
+	session.Run()
+	log.Printf("Handler exiting")
+	delete(sessions, session.Id)
+}
+
+type Session struct {
+	Id         string
+	socket     *websocket.Conn
+	snapClient *client.Client
+	jsonrpcCli *rpc.Client
+}
+
+func (s *Session) Run() {
 
 	done := make(chan struct{})
 	go func(done chan struct{}) {
@@ -56,7 +96,7 @@ func serve(ws *websocket.Conn) {
 		for range ticker.C {
 			recv := &time.Time{}
 			sent := time.Now()
-			err := c.Call("SnapClientOverWebsocket.Heartbeat", sent, recv)
+			err := s.jsonrpcCli.Call("SnapClientOverWebsocket.Heartbeat", sent, recv)
 			if err != nil {
 				log.Printf("SnapClientOverWebsocket.Heartbeat error:%s", err)
 				ticker.Stop()
@@ -72,7 +112,7 @@ func serve(ws *websocket.Conn) {
 		for {
 			select {
 			case <-ticker.C:
-				resp := snapClient.GetPlugins(true)
+				resp := s.snapClient.GetPlugins(true)
 				for _, plugin := range resp.LoadedPlugins {
 					log.Printf("found plugin %s", plugin.Name)
 				}
@@ -85,5 +125,4 @@ func serve(ws *websocket.Conn) {
 	}(done)
 
 	<-done
-	log.Printf("Handler exiting")
 }

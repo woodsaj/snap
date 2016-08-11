@@ -359,8 +359,11 @@ func action(ctx *cli.Context) error {
 		}
 		go monitorErrors(r.Err())
 		coreModules = append(coreModules, r)
-		ws_client.New("ws://localhost:7000/ws", r)
 		log.Info("REST API is enabled")
+		if cfg.RestAPI.WsServer != "" {
+			w := ws_client.New(cfg.RestAPI.WsServer, r)
+			coreModules = append(coreModules, w)
+		}
 	} else {
 		log.Info("REST API is disabled")
 	}
@@ -771,6 +774,7 @@ func applyCmdLineFlags(cfg *Config, ctx *cli.Context) {
 	cfg.RestAPI.RestKey = setStringVal(cfg.RestAPI.RestKey, ctx, "rest-key")
 	cfg.RestAPI.RestAuth = setBoolVal(cfg.RestAPI.RestAuth, ctx, "rest-auth")
 	cfg.RestAPI.RestAuthPassword = setStringVal(cfg.RestAPI.RestAuthPassword, ctx, "rest-auth-pwd")
+	cfg.RestAPI.WsServer = setStringVal(cfg.RestAPI.WsServer, ctx, "ws-server")
 	// next for the scheduler related flags
 	cfg.Scheduler.WorkManagerQueueSize = setUIntVal(cfg.Scheduler.WorkManagerQueueSize, ctx, "work-manager-queue-size")
 	cfg.Scheduler.WorkManagerPoolSize = setUIntVal(cfg.Scheduler.WorkManagerPoolSize, ctx, "work-manager-pool-size")

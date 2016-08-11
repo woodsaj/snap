@@ -82,6 +82,7 @@ type Config struct {
 	RestAuth         bool   `json:"rest_auth"yaml:"rest_auth"`
 	RestAuthPassword string `json:"rest_auth_password"yaml:"rest_auth_password"`
 	portSetByConfig  bool   ``
+	WsServer         string `json:"ws_server"yaml:"ws_server"`
 }
 
 const (
@@ -105,6 +106,9 @@ const (
 						"type": "string"
 					},
 					"rest_key" : {
+						"type": "string"
+					},
+					"ws_server": {
 						"type": "string"
 					},
 					"port" : {
@@ -213,6 +217,7 @@ func New(cfg *Config) (*Server, error) {
 	s.r = httprouter.New()
 	// Use negroni to handle routes
 	s.n.UseHandler(s.r)
+
 	return s, nil
 }
 
