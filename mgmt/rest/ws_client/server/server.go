@@ -107,7 +107,6 @@ func nodesHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func proxyHandler(w http.ResponseWriter, r *http.Request) {
-	log.Printf("handling proxy request")
 	query := r.URL.Query()
 	node := query.Get("proxy_node")
 
@@ -138,7 +137,6 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func websocketHandler(ws *websocket.Conn) {
-	log.Printf("Handler starting")
 	c := jsonrpc.NewClient(ws)
 	hc := &http.Client{
 		Transport: &wsRoundTripper{c: c},
@@ -165,8 +163,6 @@ func websocketHandler(ws *websocket.Conn) {
 	sessionsStore.Put(session.Name, session)
 	defer sessionsStore.Delete(session.Name)
 	session.Run()
-	log.Printf("Handler exiting")
-
 }
 
 func (s *Session) Run() {
@@ -184,7 +180,6 @@ func (s *Session) Run() {
 				ticker.Stop()
 				return
 			}
-			log.Printf("Heartbeat to node %s took %s", s.Name, recv.Sub(sent))
 		}
 		close(done)
 	}(done)

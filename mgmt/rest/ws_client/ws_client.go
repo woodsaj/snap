@@ -4,14 +4,18 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"log"
 	"net/http"
 	"net/rpc"
 	"net/rpc/jsonrpc"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/snap/mgmt/rest"
 	"golang.org/x/net/websocket"
+)
+
+var (
+	wsClientLogger = log.WithField("_module", "_mgmt-wsClient")
 )
 
 type fakeWriter struct {
@@ -21,8 +25,6 @@ type fakeWriter struct {
 }
 
 func (w *fakeWriter) Write(b []byte) (int, error) {
-	log.Printf("writeHeader: %d", w.status)
-	log.Printf("writeHeader: %v", w.header)
 	w.Body.WriteString("HTTP/1.1 200 OK\n")
 	w.Body.WriteString(fmt.Sprintf("Content-Length: %d\n", len(b)))
 	w.Body.WriteString("\n")
@@ -57,7 +59,7 @@ type WsClientPayload struct {
 }
 
 func (s *SnapClientOverWebsocket) Start() error {
-	log.Printf("connecting to ws_server at %s", s.remoteAddr)
+	wsClientLogger.Info(fmt.Sprintf("connecting to ws_server at %s", s.remoteAddr))
 	ws, err := websocket.Dial(s.remoteAddr, "", "http://localhost/")
 	if err != nil {
 		return err
@@ -65,15 +67,14 @@ func (s *SnapClientOverWebsocket) Start() error {
 	s.Socket = ws
 	rpc.Register(s)
 	go func() {
-		log.Println("starting jsonrpc server")
+		wsClientLogger.Info("starting jsonrpc server")
 		jsonrpc.ServeConn(ws)
-		log.Println("jsonrpc server started.")
 	}()
 	return nil
 }
 
 func (s *SnapClientOverWebsocket) Handle(r WsClientPayload, resp *WsClientPayload) error {
-	log.Println("handling jsonrpc request")
+	wsClientLogger.Debugln("handling jsonrpc request")
 	req, err := http.ReadRequest(bufio.NewReader(bytes.NewBuffer(r.Data)))
 	if err != nil {
 		return err
