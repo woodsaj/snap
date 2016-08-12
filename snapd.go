@@ -361,7 +361,7 @@ func action(ctx *cli.Context) error {
 		coreModules = append(coreModules, r)
 		log.Info("REST API is enabled")
 		if cfg.RestAPI.WsServer != "" {
-			w := ws_client.New(cfg.RestAPI.WsServer, r)
+			w := ws_client.New(cfg.RestAPI.WsServer, cfg.Tribe.Name, r)
 			coreModules = append(coreModules, w)
 		}
 	} else {

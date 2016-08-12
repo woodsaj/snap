@@ -37,9 +37,10 @@ func (w *fakeWriter) Header() http.Header {
 	return w.header
 }
 
-func New(remoteAddr string, server *rest.Server) *SnapClientOverWebsocket {
+func New(remoteAddr, name string, server *rest.Server) *SnapClientOverWebsocket {
 	return &SnapClientOverWebsocket{
 		Server:     server,
+		name:       name,
 		remoteAddr: remoteAddr,
 	}
 }
@@ -48,6 +49,7 @@ type SnapClientOverWebsocket struct {
 	remoteAddr string
 	Server     *rest.Server
 	Socket     *websocket.Conn
+	name       string
 }
 
 type WsClientPayload struct {
