@@ -88,6 +88,11 @@ func (s *SnapClientOverWebsocket) Heartbeat(t time.Time, r *time.Time) error {
 	*r = time.Now()
 	return nil
 }
+func (s *SnapClientOverWebsocket) Metadata(id string, meta *map[string]string) error {
+	*meta = map[string]string{"name": s.name}
+
+	return nil
+}
 
 func (s *SnapClientOverWebsocket) Stop() {
 	s.Socket.Close()
