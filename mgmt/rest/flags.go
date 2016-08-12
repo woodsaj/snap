@@ -60,7 +60,11 @@ var (
 		Name:  "rest-auth",
 		Usage: "Enables snap's REST API authentication",
 	}
+	flWsServer = cli.StringFlag{
+		Name:  "ws-server",
+		Usage: "Address of control server",
+	}
 
 	// Flags consumed by snapd
-	Flags = []cli.Flag{flAPIDisabled, flAPIAddr, flAPIPort, flRestHTTPS, flRestCert, flRestKey, flRestAuth}
+	Flags = []cli.Flag{flAPIDisabled, flAPIAddr, flAPIPort, flRestHTTPS, flRestCert, flRestKey, flRestAuth, flWsServer}
 )

@@ -43,6 +43,7 @@ import (
 	"github.com/intelsdi-x/snap/control"
 	"github.com/intelsdi-x/snap/core/serror"
 	"github.com/intelsdi-x/snap/mgmt/rest"
+	"github.com/intelsdi-x/snap/mgmt/rest/ws_client"
 	"github.com/intelsdi-x/snap/mgmt/tribe"
 	"github.com/intelsdi-x/snap/mgmt/tribe/agreement"
 	"github.com/intelsdi-x/snap/pkg/cfgfile"
@@ -359,6 +360,10 @@ func action(ctx *cli.Context) error {
 		go monitorErrors(r.Err())
 		coreModules = append(coreModules, r)
 		log.Info("REST API is enabled")
+		if cfg.RestAPI.WsServer != "" {
+			w := ws_client.New(cfg.RestAPI.WsServer, cfg.Tribe.Name, r)
+			coreModules = append(coreModules, w)
+		}
 	} else {
 		log.Info("REST API is disabled")
 	}
@@ -769,6 +774,7 @@ func applyCmdLineFlags(cfg *Config, ctx *cli.Context) {
 	cfg.RestAPI.RestKey = setStringVal(cfg.RestAPI.RestKey, ctx, "rest-key")
 	cfg.RestAPI.RestAuth = setBoolVal(cfg.RestAPI.RestAuth, ctx, "rest-auth")
 	cfg.RestAPI.RestAuthPassword = setStringVal(cfg.RestAPI.RestAuthPassword, ctx, "rest-auth-pwd")
+	cfg.RestAPI.WsServer = setStringVal(cfg.RestAPI.WsServer, ctx, "ws-server")
 	// next for the scheduler related flags
 	cfg.Scheduler.WorkManagerQueueSize = setUIntVal(cfg.Scheduler.WorkManagerQueueSize, ctx, "work-manager-queue-size")
 	cfg.Scheduler.WorkManagerPoolSize = setUIntVal(cfg.Scheduler.WorkManagerPoolSize, ctx, "work-manager-pool-size")
